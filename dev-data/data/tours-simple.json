@@ -169,59 +169,5 @@
             "2022-01-16,10:00",
             "2022-12-12,10:00"
         ]
-    },
-    { "id": 9, "name": "Test Tour", "duration": 10, "difficulty": "easy" },
-    { "id": 10, "name": "Test Tour", "duration": 10, "difficulty": "easy" },
-    { "id": 11, "name": "Test Tour", "duration": 10, "difficulty": "easy" },
-    { "id": 12, "name": "Test Tour", "duration": 10, "difficulty": "easy" },
-    { "id": 13, "name": "Test Tour", "duration": 10, "difficulty": "easy" },
-    {
-        "id": 14,
-        "name": "Test Tour",
-        "duration": 10,
-        "difficulty": "easy",
-        "price": 10000
-    },
-    {
-        "id": 15,
-        "name": "Test Tour",
-        "duration": 10,
-        "difficulty": "easy",
-        "price": 10000
-    },
-    {
-        "id": 16,
-        "name": "Test Tour",
-        "duration": 10,
-        "difficulty": "easy",
-        "price": 10000
-    },
-    {
-        "id": 17,
-        "name": "Test Tour",
-        "duration": 10,
-        "difficulty": "easy",
-        "price": 10000
-    },
-    {
-        "id": 18,
-        "name": "Test Tour",
-        "duration": 10,
-        "difficulty": "easy",
-        "price": 10000
-    },
-    {
-        "id": 19,
-        "name": "Test Tour",
-        "duration": 10,
-        "difficulty": "easy",
-        "price": 10000
-    },
-    {
-        "id": 20,
-        "name": "Test Tour",
-        "duration": 10,
-        "difficulty": "easy",
-        "price": 10000
     }
 ]
