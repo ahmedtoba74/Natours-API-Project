@@ -16,6 +16,11 @@ const handleValidationErrorDB = (err) => {
     return new AppError(message, 400);
 };
 
+const handleJWTError = () =>
+    new AppError("Invalid token. Please log in again!", 401);
+
+const handleJWTExpiredError = () =>
+    new AppError("Your token has expired! Please log in again.", 401);
 // Error handling for development environment
 
 const sendErrorDev = (err, res) => {
@@ -30,7 +35,7 @@ const sendErrorDev = (err, res) => {
 
 const sendErrorProd = (err, res) => {
     // Log the error for production
-    console.error("Error:", err);
+    console.error("Error:", err, err.message);
     // Send a generic error message to the client
     if (err.isOperational) {
         // Operational errors are expected and handled gracefully
@@ -51,11 +56,12 @@ const sendErrorProd = (err, res) => {
 module.exports = (err, req, res, next) => {
     err.statusCode = err.statusCode || 500;
     err.status = err.status || "error";
-
+    console.log("Error name:", err.name);
     if (process.env.NODE_ENV === "development") {
         sendErrorDev(err, res);
     } else if (process.env.NODE_ENV === "production") {
         let error = { ...err }; // Shallow copy of the error object
+
         // Handle specific error types
         if (err.name === "CastError") {
             // Handle MongoDB CastError
@@ -67,6 +73,12 @@ module.exports = (err, req, res, next) => {
         }
         if (err.name === "ValidationError") {
             error = handleValidationErrorDB(error);
+        }
+        if (err.name === "JsonWebTokenError") {
+            error = handleJWTError();
+        }
+        if (err.name === "TokenExpiredError") {
+            error = handleJWTExpiredError();
         }
         sendErrorProd(error, res);
     }
