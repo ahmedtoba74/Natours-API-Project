@@ -1,4 +1,5 @@
 /* eslint-disable import/no-extraneous-dependencies */
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcryptjs");
@@ -75,6 +76,8 @@ const userScema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    passwordResetToken: String,
+    passwordResetExpires: Date,
 });
 
 // Middleware to hash the password before saving the user
@@ -87,6 +90,12 @@ userScema.pre("save", async function (next) {
     // It can be adjusted based on the performance requirements of your application
     this.password = await bcrypt.hash(this.password, 12);
     this.passwordConfirm = undefined; // We don't need to store the passwordConfirm in the database
+    next();
+});
+
+userScema.pre("save", function (next) {
+    if (!this.isModified("password") || this.isNew) return next();
+    this.passwordChangedAt = Date.now() - 1000; // Subtract 1 second to ensure the token is created after the password change
     next();
 });
 
@@ -108,6 +117,19 @@ userScema.methods.changedPasswordAfter = function (JWTTimestamp) {
     }
 
     return false;
+};
+
+userScema.methods.createPasswordResetToken = function () {
+    // Create a reset token and hash it
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    this.passwordResetToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+    console.log("Reset Token:", { resetToken }, this.passwordResetToken);
+    this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+    // Return the plain token to send to the user
+    return resetToken;
 };
 
 const User = mongoose.model("User", userScema);
