@@ -78,6 +78,11 @@ const userScema = new mongoose.Schema({
     },
     passwordResetToken: String,
     passwordResetExpires: Date,
+    active: {
+        type: Boolean,
+        default: true,
+        select: false,
+    },
 });
 
 // Middleware to hash the password before saving the user
@@ -99,6 +104,10 @@ userScema.pre("save", function (next) {
     next();
 });
 
+userScema.pre(/^find/, function (next) {
+    this.find({ active: { $ne: false } });
+    next();
+});
 userScema.methods.correctPassword = async function (
     candicatePassord,
     userPassword,
