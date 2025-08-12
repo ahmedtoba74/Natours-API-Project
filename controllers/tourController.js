@@ -4,9 +4,9 @@
 /* eslint-disable prettier/prettier */
 
 const Tour = require("../models/tourModel");
-const APIFeatures = require("../utils/apiFeatures");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
+const factory = require("./handlerFactory");
 
 exports.aliasTopTours = (req, res, next) => {
     req.query.limit = "5"; // Limit to 5 results
@@ -15,78 +15,16 @@ exports.aliasTopTours = (req, res, next) => {
     next(); // Call next middleware
 };
 
-exports.getAllTours = catchAsync(async (req, res, next) => {
-    // Execute query
-    const features = new APIFeatures(Tour.find(), req.query);
-    features.filter();
-    features.sort();
-    features.limitFields();
-    features.paginate();
-    const { query } = features;
-    const tours = await query;
+exports.getAllTours = factory.getAll(Tour);
 
-    // Send response
-    res.status(200).json({
-        requestedAt: req.requestTime,
-        status: "success",
-        results: tours.length,
-        data: {
-            tours,
-        },
-    });
+exports.getTour = factory.getOne(Tour, {
+    path: "reviews",
+    select: "-__v -tour",
 });
 
-exports.createTour = catchAsync(async (req, res, next) => {
-    const newTour = await Tour.create(req.body);
-
-    res.status(201).json({
-        status: "success",
-        data: {
-            tour: newTour,
-        },
-    });
-});
-
-exports.getTour = catchAsync(async (req, res, next) => {
-    const tour = await Tour.findById(req.params.id);
-    if (!tour) {
-        return next(new AppError("Tour not found", 404)); // Use AppError for consistent error handling
-    }
-    res.status(200).json({
-        status: "success",
-        data: {
-            tour,
-        },
-    });
-});
-
-exports.updateTour = catchAsync(async (req, res, next) => {
-    const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
-        new: true,
-        runValidators: true,
-    });
-    if (!tour) {
-        return next(new AppError("Tour not found", 404)); // Use AppError for consistent error handling
-    }
-    res.status(200).json({
-        status: "success",
-        data: {
-            status: "Tour updated successfully",
-            tour: tour,
-        },
-    });
-});
-
-exports.deleteTour = catchAsync(async (req, res, next) => {
-    const tour = await Tour.findByIdAndDelete(req.params.id);
-    if (!tour) {
-        return next(new AppError("Tour not found", 404)); // Use AppError for consistent error handling
-    }
-    res.status(204).json({
-        status: "success",
-        data: null,
-    });
-});
+exports.createTour = factory.createOne(Tour);
+exports.updateTour = factory.updateOne(Tour);
+exports.deleteTour = factory.deleteOne(Tour);
 
 exports.getTourStats = catchAsync(async (req, res, next) => {
     const stats = await Tour.aggregate([
