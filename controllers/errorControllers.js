@@ -23,56 +23,76 @@ const handleJWTExpiredError = () =>
     new AppError("Your token has expired! Please log in again.", 401);
 // Error handling for development environment
 
-const sendErrorDev = (err, res) => {
-    console.error("Error:", err);
-    res.status(err.statusCode).json({
-        status: err.status,
-        error: err,
-        message: err.message,
-        stack: err.stack,
-    });
+const sendErrorDev = (err, req, res) => {
+    // API
+    if (req.originalUrl.startsWith("/api")) {
+        res.status(err.statusCode).json({
+            status: err.status,
+            error: err,
+            message: err.message,
+            stack: err.stack,
+        });
+    } else {
+        // RENDERING WEBSITE
+        res.status(err.statusCode).render("error", {
+            title: "Somthing went wrong",
+            msg: err.message,
+        });
+    }
 };
 
-const sendErrorProd = (err, res) => {
-    // Log the error for production
-    console.error("Error:", err, err.message);
-    // Send a generic error message to the client
-    if (err.isOperational) {
-        // Operational errors are expected and handled gracefully
-        return res.status(err.statusCode).json({
-            status: err.status,
-            message: err.message,
-        });
-        // eslint-disable-next-line no-else-return
-    } else {
-        res.status(500).json({
+const sendErrorProd = (err, req, res) => {
+    // API
+    if (req.originalUrl.startsWith("/api")) {
+        // Send a generic error message to the client
+        if (err.isOperational) {
+            // Operational errors are expected and handled gracefully
+            return res.status(err.statusCode).json({
+                status: err.status,
+                message: err.message,
+            });
+        }
+        return res.status(500).json({
             // For programming or unknown errors, don't leak details to the client
             status: "error",
             message: "Something went very wrong!",
         });
     }
+    // RENDERING WEBSITE
+    if (err.isOperational) {
+        // console.log(err);
+        // Operational errors are expected and handled gracefully
+        return res.status(err.statusCode).render("error", {
+            title: "Somthing went wrong!",
+            msg: err.message,
+        });
+    }
+    return res.status(err.statusCode).render("error", {
+        title: "Somthing went wrong!",
+        msg: "Please try again later",
+    });
 };
 
 module.exports = (err, req, res, next) => {
     err.statusCode = err.statusCode || 500;
     err.status = err.status || "error";
-    console.log("Error name:", err.name);
+    // console.log("Error name:", err.name);
     if (process.env.NODE_ENV === "development") {
-        sendErrorDev(err, res);
+        sendErrorDev(err, req, res);
     } else if (process.env.NODE_ENV === "production") {
         let error = { ...err }; // Shallow copy of the error object
-
+        error.message = err.message;
         // Handle specific error types
         if (err.name === "CastError") {
             // Handle MongoDB CastError
-            error = handleCastErrorDB(error);
+            error = handleCastErrorDB(err);
         }
-        if (error.code === 11000) {
+        if (err.code === 11000) {
             // Handle MongoDB Duplicate Key Error
-            error = handleDuplicateFieldsDB(error);
+            error = handleDuplicateFieldsDB(err);
         }
         if (err.name === "ValidationError") {
-            error = handleValidationErrorDB(error);
+            error = handleValidationErrorDB(err);
         }
         if (err.name === "JsonWebTokenError") {
             error = handleJWTError();
@@ -80,6 +100,6 @@ module.exports = (err, req, res, next) => {
         if (err.name === "TokenExpiredError") {
             error = handleJWTExpiredError();
         }
-        sendErrorProd(error, res);
+        sendErrorProd(error, req, res);
     }
 };

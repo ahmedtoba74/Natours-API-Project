@@ -70,8 +70,17 @@ exports.login = catchAsync(async (req, res, next) => {
     }
     // Generate a JWT token for the user
     user.password = undefined;
-    console.log("User found:", user);
+    // console.log("User found:", user);
     createSendToken(user, 200, res);
+});
+
+exports.logout = catchAsync((req, res, next) => {
+    res.cookie("jwt", "loggedout", {
+        expires: new Date(Date.now() + 10 * 1000),
+        httpOnly: true,
+    });
+
+    res.status(200).json({ status: "success" });
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
@@ -82,6 +91,8 @@ exports.protect = catchAsync(async (req, res, next) => {
         req.headers.authorization.startsWith("Bearer")
     ) {
         token = req.headers.authorization.split(" ")[1];
+    } else if (req.cookies.jwt) {
+        token = req.cookies.jwt;
     }
     if (!token) {
         return next(
@@ -118,6 +129,36 @@ exports.protect = catchAsync(async (req, res, next) => {
     res.locals.user = currentUser; // Make user available in response locals
     next();
 });
+
+// Only for renderd pages, no erors!
+exports.isLoggedIn = async (req, res, next) => {
+    // Check if token is provided
+    if (req.cookies.jwt) {
+        try {
+            // Verfiy token
+            const decoded = await promisify(jwt.verify)(
+                req.cookies.jwt,
+                process.env.JWT_SECRET,
+            );
+            // Check if user still exists
+            const currentUser = await User.findById(decoded.id);
+            if (!currentUser) {
+                return next();
+            }
+
+            // Check if user changed password after the token was issued
+            if (currentUser.changedPasswordAfter(decoded.iat)) {
+                return next();
+            }
+            // There is a logged in user
+            res.locals.user = currentUser; // Make user available in response locals
+            return next();
+        } catch (err) {
+            return next();
+        }
+    }
+    return next();
+};
 
 exports.restrictTo =
     (...roles) =>
@@ -166,7 +207,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
             message: "Token sent to email!",
         });
     } catch (err) {
-        console.error("EMAIL SENDING ERROR:", err); // Log the error for debugging
+        // console.error("EMAIL SENDING ERROR:", err);  Log the error for debugging
         user.passwordResetToken = undefined;
         user.passwordResetExpires = undefined;
         await user.save({ validateBeforeSave: false });
@@ -207,15 +248,15 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 });
 
 exports.updatePassword = catchAsync(async (req, res, next) => {
+    const { passwordCurrent } = req.body;
     const { password } = req.body;
-    const { newPassword } = req.body;
-    const { newPasswordConfirm } = req.body;
+    const { passwordConfirm } = req.body;
     const user = await User.findById(req.user.id).select("+password");
-    if (!user || !(await user.correctPassword(password, user.password))) {
+    if (!(await user.correctPassword(passwordCurrent, user.password))) {
         return next(new AppError("Your current password is wrong", 401));
     }
-    user.password = newPassword;
-    user.passwordConfirm = newPasswordConfirm;
+    user.password = password;
+    user.passwordConfirm = passwordConfirm;
 
     await user.save();
 

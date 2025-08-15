@@ -49,7 +49,7 @@ const userScema = new mongoose.Schema({
         required: [true, "A user must have a password"],
         minlength: 8,
         select: false, // This will not return the password in queries
-        validate: [validator.isStrongPassword, "Password is not strong enough"],
+        // validate: [validator.isStrongPassword, "Password is not strong enough"],
         // {
         //     // This is a custom validator to check if the password is strong enough
         //     validator: function (val) {
@@ -121,7 +121,7 @@ userScema.methods.changedPasswordAfter = function (JWTTimestamp) {
             this.passwordChangedAt.getTime() / 1000,
             10,
         ); // Convert to seconds
-        console.log(changedTimestamp, JWTTimestamp);
+        // console.log(changedTimestamp, JWTTimestamp);
         return JWTTimestamp < changedTimestamp; // If JWT timestamp is less than the changed timestamp, password was changed after the token was issued
     }
 
