@@ -44,3 +44,6 @@ dump/
 # Optional: macOS metadata
 .AppleDouble
 .LSOverride
+
+#cache 
+.cache/
