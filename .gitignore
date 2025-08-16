@@ -47,3 +47,7 @@ dump/
 
 #cache 
 .cache/
+
+#templates
+templates/
+data/
